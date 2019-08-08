@@ -84,4 +84,15 @@ public class Producer {
         //发消息
         MQUtils.sendMessage(connectionFactory,exchange,routingKey,props,msg);
     }
+
+
+    public static void sendWithConfirm(String exchange, String routingKey,  AMQP.BasicProperties props) {
+        ConnectionFactory connectionFactory = MQUtils.getConnectionFactory("192.168.56.108","/",5672);
+
+        //信息
+        String msg = "hello rabbitMQ!";
+
+        //发消息
+        MQUtils.sendMessageWithConfirm(connectionFactory,exchange,routingKey,props,msg);
+    }
 }

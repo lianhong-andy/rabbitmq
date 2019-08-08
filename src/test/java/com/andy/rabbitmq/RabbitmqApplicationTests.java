@@ -69,6 +69,11 @@ public class RabbitmqApplicationTests {
     }
 
     @Test
+    public void receiveWithConfirm() throws InterruptedException, IOException, TimeoutException {
+        Consumer.receiveWithConfirm();
+    }
+
+    @Test
     public void send(){
         Producer.send();
     }
@@ -83,6 +88,9 @@ public class RabbitmqApplicationTests {
         Producer.sendFanout("test_fanout_exchange", "");
     }
 
+    /**
+     * 携带自定义属性
+     */
     @Test
     public void sendWithProps(){
         HashMap<String, Object> headers = new HashMap<>();
@@ -95,6 +103,14 @@ public class RabbitmqApplicationTests {
                 .headers(headers)//存储自定义属性
                 .build();
         Producer.sendWithProps("test_topic_exchange","user.",props);
+    }
+
+    /**
+     * 携带自定义属性
+     */
+    @Test
+    public void sendWithConfirm(){
+        Producer.sendWithConfirm("test_confirm_exchange","confirm.save",null);
     }
 
 }

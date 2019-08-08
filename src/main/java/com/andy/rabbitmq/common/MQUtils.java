@@ -57,6 +57,55 @@ public class MQUtils {
             closeConnection(connection,channel);
         }
 
+    }
+
+    /**
+     * 发消息
+     * @param connectionFactory 连接工厂
+     * @param exchange 交换机
+     * @param routingKey 路由
+     * @param props 附加条件
+     * @param msg 消息内容
+     */
+    public static void sendMessageWithConfirm(ConnectionFactory connectionFactory, String exchange,
+                                   String routingKey, AMQP.BasicProperties props, String msg) {
+        Connection connection = null;
+        Channel channel = null;
+        try {
+            //通过连接工厂创建连接
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            channel.confirmSelect();
+
+            channel.addConfirmListener(new ConfirmListener() {
+                @Override
+                public void handleAck(long deliveryTag, boolean multiple) throws IOException {
+                    System.out.println("==========ack===================");
+                }
+
+                @Override
+                public void handleNack(long deliveryTag, boolean multiple) throws IOException {
+                    System.out.println("==================no ack=============");
+                }
+            });
+
+            //通过channel发送数据
+            for (int i = 0; i < 5; i++) {
+                routingKey +=i;
+                if(i%2 != 0){
+                    routingKey +="."+i;
+                }
+                channel.basicPublish(exchange,routingKey,props,msg.getBytes());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+
 
 
     }
@@ -370,5 +419,54 @@ public class MQUtils {
             closeConnection(connection,channel);
         }
 
+    }
+
+    public static void receiveWithConfirm(ConnectionFactory connectionFactory, String queueName, boolean durable,
+                                          boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                          boolean autoAck, String routingKey, String exchangeName, String exchangeType) throws IOException, TimeoutException, InterruptedException {
+
+        Connection connection = null;
+        Channel channel = null;
+
+
+        //通过连接工厂创建连接
+        //是否支持自动重连（用于网路发生闪断后的重连）
+        connectionFactory.setAutomaticRecoveryEnabled(true);
+        //每3s重连一次
+        connectionFactory.setNetworkRecoveryInterval(3000);
+        connection = connectionFactory.newConnection();
+
+        //通过connection创建一个channel
+        channel = connection.createChannel();
+
+        //声明一个交换机
+        channel.exchangeDeclare(exchangeName, exchangeType, durable);
+
+        //声明队列
+        channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
+
+        //声明一个绑定关系
+        channel.queueBind(queueName, exchangeName, routingKey);
+
+        //创建消费者
+        QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
+
+        //设置channel
+        channel.basicConsume(queueName, autoAck, queueingConsumer);
+
+        //获取消息
+
+        while (true) {
+            //一直阻塞方法
+            QueueingConsumer.Delivery delivery = queueingConsumer.nextDelivery();
+
+            String msg = new String(delivery.getBody());
+            System.out.println("消费端 = " + msg);
+            Envelope envelope = delivery.getEnvelope();
+
+            long deliveryTag = envelope.getDeliveryTag();//消息唯一性处理/应答的时候用到deliveryTag
+            System.out.println("envelope = " + envelope);
+
+        }
     }
 }
