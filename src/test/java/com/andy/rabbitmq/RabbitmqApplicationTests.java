@@ -74,6 +74,10 @@ public class RabbitmqApplicationTests {
     }
 
     @Test
+    public void receiveWithReturn() throws InterruptedException, IOException, TimeoutException {
+        Consumer.receiveWithReturn();
+    }
+    @Test
     public void send(){
         Producer.send();
     }
@@ -106,11 +110,20 @@ public class RabbitmqApplicationTests {
     }
 
     /**
-     * 携带自定义属性
+     * 监听confirm
      */
     @Test
     public void sendWithConfirm(){
         Producer.sendWithConfirm("test_confirm_exchange","confirm.save",null);
     }
 
+
+    /**
+     * 监听return
+     */
+    @Test
+    public void sendWithReturn(){
+//        Producer.sendWithReturn("test_return_exchange","return.save",null);
+        Producer.sendWithReturn("test_return_exchange","abc.save",null);
+    }
 }

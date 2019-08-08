@@ -97,4 +97,21 @@ public class Consumer {
         MQUtils.receiveWithConfirm(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
 
     }
+
+    public static void receiveWithReturn() {
+        ConnectionFactory connectionFactory = MQUtils.getConnectionFactory("192.168.56.108", "/", 5672);
+
+        String queueName = "test_return_queue";
+        String exchangeName = "test_return_exchange";
+        String exchangeType = "topic";
+        String routingKey = "return.#";
+
+        boolean durable = true;
+        boolean exclusive = false;
+        boolean autoDelete = false;
+        Map<String,Object> otherArguments = null;
+        boolean autoAck = true;//是否自动应答（监听）
+
+        MQUtils.receiveWithReturn(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
+    }
 }
