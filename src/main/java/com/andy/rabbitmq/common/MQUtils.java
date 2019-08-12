@@ -15,6 +15,10 @@ import java.util.concurrent.TimeoutException;
  * @date 2019/7/31 0031下午 10:16
  */
 public class MQUtils {
+    public static final String X_DEAD_LETTER_EXCHANGE = "x-dead-letter-exchange";
+    public static final String DLX_EXCHANGE = "dlx_exchange";
+
+
     public static ConnectionFactory getConnectionFactory(String host, String vhost, int port) {
         //创建一个ConnectionFactory，并进行配置
         ConnectionFactory connectionFactory = new ConnectionFactory();
@@ -180,7 +184,7 @@ public class MQUtils {
                 HashMap<String, Object> headers = new HashMap<>();
                 headers.put("num",i);
                 props = new AMQP.BasicProperties().builder()
-                        .expiration("3000")//过期时间
+                        .expiration("10000")//过期时间
                         .deliveryMode(2)//持久化投递，服务重启消息不丢失
                         .headers(headers)//存储自定义属性
                         .contentEncoding("utf-8")//编码
@@ -787,6 +791,56 @@ public class MQUtils {
 
             //声明一个绑定关系
             channel.queueBind(queueName, exchangeName, routingKey);
+
+
+            //设置channel
+            channel.basicConsume(queueName, autoAck, new AckConsumer(channel));
+
+            while (true) {
+
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void receiveWithDLX(ConnectionFactory connectionFactory, String queueName, boolean durable,
+                                         boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                         boolean autoAck, String routingKey, String exchangeName, String exchangeType) {
+        Connection connection = null;
+        Channel channel = null;
+
+        try {
+
+            //通过连接工厂创建连接
+            //是否支持自动重连（用于网路发生闪断后的重连）
+            connectionFactory.setAutomaticRecoveryEnabled(true);
+            //每3s重连一次
+            connectionFactory.setNetworkRecoveryInterval(3000);
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            //声明一个交换机
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
+
+            //声明队列
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
+
+            //声明一个绑定关系
+            channel.queueBind(queueName, exchangeName, routingKey);
+
+            /**声明死信队列*/
+            String dxlQueueName = "dlx_queue";
+            String dxlRoutingKey = "#";
+            channel.exchangeDeclare(MQUtils.DLX_EXCHANGE,exchangeType,durable, autoDelete, false, null);
+            channel.queueDeclare(dxlQueueName,durable,exclusive,autoDelete,null);
+            channel.queueBind(dxlQueueName,MQUtils.DLX_EXCHANGE,dxlRoutingKey);
 
 
             //设置channel

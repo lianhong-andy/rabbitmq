@@ -94,6 +94,14 @@ public class RabbitmqApplicationTests {
         Consumer.receiveWithReSend();
     }
 
+    /**
+     * 死信队列-监听
+     */
+    @Test
+    public void receiveWithDLX() throws InterruptedException, IOException, TimeoutException {
+        Consumer.receiveWithDLX();
+    }
+
 
     /**
      * 消费限流-消费端
@@ -167,6 +175,14 @@ public class RabbitmqApplicationTests {
     @Test
     public void sendWithReSend(){
         Producer.sendWithReSend("test_ack_exchange","ack.save",null);
+    }
+
+    /**
+     * 死信队列-发送端
+     */
+    @Test
+    public void sendWithDLX(){
+        Producer.sendWithReSend("test_dxl_exchange","dlx.save",null);
     }
 
 
