@@ -1,9 +1,11 @@
 package com.andy.rabbitmq.common;
 
+import com.andy.rabbitmq.consumer.AckConsumer;
 import com.andy.rabbitmq.consumer.MyConsumer;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -150,6 +152,50 @@ public class MQUtils {
         } catch (TimeoutException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 发消息
+     *
+     * @param connectionFactory 连接工厂
+     * @param exchange          交换机
+     * @param routingKey        路由
+     * @param props             附加条件
+     * @param msg               消息内容
+     */
+    public static void sendMessageWithReSend(ConnectionFactory connectionFactory, String exchange,
+                                   String routingKey, AMQP.BasicProperties props, String msg) {
+        Connection connection = null;
+        Channel channel = null;
+        try {
+            //通过连接工厂创建连接
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            //通过channel发送数据
+            for (int i = 0; i < 5; i++) {
+                String curMsg = msg + i;
+                HashMap<String, Object> headers = new HashMap<>();
+                headers.put("num",i);
+                props = new AMQP.BasicProperties().builder()
+                        .expiration("3000")//过期时间
+                        .deliveryMode(2)//持久化投递，服务重启消息不丢失
+                        .headers(headers)//存储自定义属性
+                        .contentEncoding("utf-8")//编码
+                        .build();
+                props.builder().headers(headers).build();
+                channel.basicPublish(exchange, routingKey, props, curMsg.getBytes());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } finally {
+            closeConnection(connection, channel);
+        }
+
     }
 
 
@@ -715,4 +761,46 @@ public class MQUtils {
     }
 
 
+    public static void receiveWithReSend(ConnectionFactory connectionFactory, String queueName, boolean durable,
+                                         boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                         boolean autoAck, String routingKey, String exchangeName, String exchangeType) {
+        Connection connection = null;
+        Channel channel = null;
+
+        try {
+
+            //通过连接工厂创建连接
+            //是否支持自动重连（用于网路发生闪断后的重连）
+            connectionFactory.setAutomaticRecoveryEnabled(true);
+            //每3s重连一次
+            connectionFactory.setNetworkRecoveryInterval(3000);
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            //声明一个交换机
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
+
+            //声明队列
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
+
+            //声明一个绑定关系
+            channel.queueBind(queueName, exchangeName, routingKey);
+
+
+            //设置channel
+            channel.basicConsume(queueName, autoAck, new AckConsumer(channel));
+
+            while (true) {
+
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
 }

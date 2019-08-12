@@ -87,6 +87,15 @@ public class RabbitmqApplicationTests {
     }
 
     /**
+     * 重回队列监听
+     */
+    @Test
+    public void receiveWithReSend() throws InterruptedException, IOException, TimeoutException {
+        Consumer.receiveWithReSend();
+    }
+
+
+    /**
      * 消费限流-消费端
      */
     @Test
@@ -151,6 +160,15 @@ public class RabbitmqApplicationTests {
     public void sendWithQOS(){
         Producer.sendWithQOS("test_qos_exchange","qos.save",null);
     }
+
+    /**
+     * 重回队列-发送端
+     */
+    @Test
+    public void sendWithReSend(){
+        Producer.sendWithReSend("test_ack_exchange","ack.save",null);
+    }
+
 
 
 
