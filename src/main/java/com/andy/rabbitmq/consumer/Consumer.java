@@ -149,4 +149,5 @@ public class Consumer {
 
         MQUtils.receiveWithQOS(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
     }
+    //test reset command
 }
