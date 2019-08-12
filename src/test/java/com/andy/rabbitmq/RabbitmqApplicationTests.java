@@ -77,6 +77,23 @@ public class RabbitmqApplicationTests {
     public void receiveWithReturn() throws InterruptedException, IOException, TimeoutException {
         Consumer.receiveWithReturn();
     }
+
+    /**
+     * 自定义监听
+     */
+    @Test
+    public void receiveWithMyConsumer(){
+        Consumer.receiveWithMyConsumer();
+    }
+
+    /**
+     * 消费限流-消费端
+     */
+    @Test
+    public void receiveWithQOS(){
+        Consumer.receiveWithMyQOS();
+    }
+
     @Test
     public void send(){
         Producer.send();
@@ -126,4 +143,15 @@ public class RabbitmqApplicationTests {
 //        Producer.sendWithReturn("test_return_exchange","return.save",null);
         Producer.sendWithReturn("test_return_exchange","abc.save",null);
     }
+
+    /**
+     * 消费限流发送端
+     */
+    @Test
+    public void sendWithQOS(){
+        Producer.sendWithQOS("test_qos_exchange","qos.save",null);
+    }
+
+
+
 }

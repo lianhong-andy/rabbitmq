@@ -1,6 +1,8 @@
 package com.andy.rabbitmq.common;
 
+import com.andy.rabbitmq.consumer.MyConsumer;
 import com.rabbitmq.client.*;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -11,7 +13,7 @@ import java.util.concurrent.TimeoutException;
  * @date 2019/7/31 0031下午 10:16
  */
 public class MQUtils {
-    public static ConnectionFactory getConnectionFactory(String host,String vhost, int port){
+    public static ConnectionFactory getConnectionFactory(String host, String vhost, int port) {
         //创建一个ConnectionFactory，并进行配置
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost(host);
@@ -24,11 +26,12 @@ public class MQUtils {
 
     /**
      * 发消息
+     *
      * @param connectionFactory 连接工厂
-     * @param exchange 交换机
-     * @param routingKey 路由
-     * @param props 附加条件
-     * @param msg 消息内容
+     * @param exchange          交换机
+     * @param routingKey        路由
+     * @param props             附加条件
+     * @param msg               消息内容
      */
     public static void sendMessage(ConnectionFactory connectionFactory, String exchange,
                                    String routingKey, AMQP.BasicProperties props, String msg) {
@@ -43,32 +46,33 @@ public class MQUtils {
 
             //通过channel发送数据
             for (int i = 0; i < 5; i++) {
-                routingKey +=i;
-                if(i%2 != 0){
-                    routingKey +="."+i;
+                routingKey += i;
+                if (i % 2 != 0) {
+                    routingKey += "." + i;
                 }
-                channel.basicPublish(exchange,routingKey,props,msg.getBytes());
+                channel.basicPublish(exchange, routingKey, props, msg.getBytes());
             }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
             e.printStackTrace();
         } finally {
-            closeConnection(connection,channel);
+            closeConnection(connection, channel);
         }
 
     }
 
     /**
      * 发消息
+     *
      * @param connectionFactory 连接工厂
-     * @param exchange 交换机
-     * @param routingKey 路由
-     * @param props 附加条件
-     * @param msg 消息内容
+     * @param exchange          交换机
+     * @param routingKey        路由
+     * @param props             附加条件
+     * @param msg               消息内容
      */
     public static void sendMessageWithReturn(ConnectionFactory connectionFactory, String exchange,
-                                   String routingKey, AMQP.BasicProperties props, String msg) {
+                                             String routingKey, AMQP.BasicProperties props, String msg) {
         Connection connection = null;
         Channel channel = null;
         try {
@@ -97,9 +101,9 @@ public class MQUtils {
 
             //通过channel发送数据
             for (int i = 0; i < 5; i++) {
-                routingKey +=i;
-                if(i%2 != 0){
-                    routingKey +="."+i;
+                routingKey += i;
+                if (i % 2 != 0) {
+                    routingKey += "." + i;
                 }
                 /**
                  * 如果为true，则监听器会接收到路由不可达的消息，然后进行后续的处理，
@@ -116,7 +120,7 @@ public class MQUtils {
                  * body:hello rabbitMQ!
                  */
                 boolean mandatory = false;
-                channel.basicPublish(exchange,routingKey,mandatory,props,msg.getBytes());
+                channel.basicPublish(exchange, routingKey, mandatory, props, msg.getBytes());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -125,17 +129,41 @@ public class MQUtils {
         }
 
 
-
     }
+
+    public static void sendMessageQOS(ConnectionFactory connectionFactory, String exchange, String routingKey, AMQP.BasicProperties props, String msg) {
+
+        Connection connection = null;
+        Channel channel = null;
+        try {
+            //通过连接工厂创建连接
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            for (int i = 0; i < 5; i++) {
+                channel.basicPublish(exchange, routingKey, props, msg.getBytes());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
 
     /**
      * 发消息
+     *
      * @param connectionFactory 连接工厂
-     * @param exchange 交换机
-     * @param routingKey 路由
-     * @param props 附加条件
-     * @param msg 消息内容
+     * @param exchange          交换机
+     * @param routingKey        路由
+     * @param props             附加条件
+     * @param msg               消息内容
      */
     public static void sendMessageWithConfirm(ConnectionFactory connectionFactory, String exchange,
                                               String routingKey, AMQP.BasicProperties props, String msg) {
@@ -164,11 +192,11 @@ public class MQUtils {
 
             //通过channel发送数据
             for (int i = 0; i < 5; i++) {
-                routingKey +=i;
-                if(i%2 != 0){
-                    routingKey +="."+i;
+                routingKey += i;
+                if (i % 2 != 0) {
+                    routingKey += "." + i;
                 }
-                channel.basicPublish(exchange,routingKey,props,msg.getBytes());
+                channel.basicPublish(exchange, routingKey, props, msg.getBytes());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -177,20 +205,18 @@ public class MQUtils {
         }
 
 
-
     }
 
     /**
-     *
      * @param connectionFactory
-     * @param queueName 队列名称
-     * @param durable true代表持久化，其实服务器重启消息也不会丢失
-     * @param exclusive 是否独占（保证顺序消费，当上一个消息被所有集群节点消费完之后才消费下一个消息）
-     *                  这个队列只有一个channel可以监听，相当于加锁
-     * @param autoDelete 是否自动删除，当队列脱离exchange的绑定关系时自动删除
-     * @param otherArguments 其它参数
-     * @param autoAck  true代表自动应答（监听）,当broker发送一条消息到指定队列的时候，
-     *                 消费者监听到会立马回调broker告诉它消息已消费，不管消费结果如何，也可以在代码中指定手动应答
+     * @param queueName         队列名称
+     * @param durable           true代表持久化，其实服务器重启消息也不会丢失
+     * @param exclusive         是否独占（保证顺序消费，当上一个消息被所有集群节点消费完之后才消费下一个消息）
+     *                          这个队列只有一个channel可以监听，相当于加锁
+     * @param autoDelete        是否自动删除，当队列脱离exchange的绑定关系时自动删除
+     * @param otherArguments    其它参数
+     * @param autoAck           true代表自动应答（监听）,当broker发送一条消息到指定队列的时候，
+     *                          消费者监听到会立马回调broker告诉它消息已消费，不管消费结果如何，也可以在代码中指定手动应答
      */
     public static void receiveMsg(ConnectionFactory connectionFactory, String queueName, boolean durable,
                                   boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments, boolean autoAck) {
@@ -214,19 +240,19 @@ public class MQUtils {
             String routingKey = "test.direct";
 
             //声明一个交换机
-            channel.exchangeDeclare(exchangeName,exchangeType,durable,autoDelete,false,null);
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
 
             //声明队列
-            channel.queueDeclare(queueName,durable,exclusive,autoDelete,otherArguments);
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
 
             //声明一个绑定关系
-            channel.queueBind(queueName,exchangeName,routingKey);
+            channel.queueBind(queueName, exchangeName, routingKey);
 
             //创建消费者
             QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
 
             //设置channel
-            channel.basicConsume(queueName,autoAck,queueingConsumer);
+            channel.basicConsume(queueName, autoAck, queueingConsumer);
 
             //获取消息
 
@@ -252,25 +278,24 @@ public class MQUtils {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            closeConnection(connection,channel);
+            closeConnection(connection, channel);
         }
     }
 
     /**
-     *
      * @param connectionFactory
-     * @param queueName 队列名称
-     * @param durable true代表持久化，其实服务器重启消息也不会丢失
-     * @param exclusive 是否独占（保证顺序消费，当上一个消息被所有集群节点消费完之后才消费下一个消息）
-     *                  这个队列只有一个channel可以监听，相当于加锁
-     * @param autoDelete 是否自动删除，当队列脱离exchange的绑定关系时自动删除
-     * @param otherArguments 其它参数
-     * @param autoAck  true代表自动应答（监听）,当broker发送一条消息到指定队列的时候，
-     *                 消费者监听到会立马回到broker告诉它消息已消费，不管消费结果如何，也可以在代码中指定手动应答
+     * @param queueName         队列名称
+     * @param durable           true代表持久化，其实服务器重启消息也不会丢失
+     * @param exclusive         是否独占（保证顺序消费，当上一个消息被所有集群节点消费完之后才消费下一个消息）
+     *                          这个队列只有一个channel可以监听，相当于加锁
+     * @param autoDelete        是否自动删除，当队列脱离exchange的绑定关系时自动删除
+     * @param otherArguments    其它参数
+     * @param autoAck           true代表自动应答（监听）,当broker发送一条消息到指定队列的时候，
+     *                          消费者监听到会立马回到broker告诉它消息已消费，不管消费结果如何，也可以在代码中指定手动应答
      */
     public static void receiveTopic(ConnectionFactory connectionFactory, String queueName, boolean durable,
-                                  boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
-                                    boolean autoAck,String routingKey, String exchangeName, String exchangeType) {
+                                    boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                    boolean autoAck, String routingKey, String exchangeName, String exchangeType) {
         Connection connection = null;
         Channel channel = null;
 
@@ -287,19 +312,19 @@ public class MQUtils {
             channel = connection.createChannel();
 
             //声明一个交换机
-            channel.exchangeDeclare(exchangeName,exchangeType,durable,autoDelete,false,null);
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
 
             //声明队列
-            channel.queueDeclare(queueName,durable,exclusive,autoDelete,otherArguments);
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
 
             //声明一个绑定关系
-            channel.queueBind(queueName,exchangeName,routingKey);
+            channel.queueBind(queueName, exchangeName, routingKey);
 
             //创建消费者
             QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
 
             //设置channel
-            channel.basicConsume(queueName,autoAck,queueingConsumer);
+            channel.basicConsume(queueName, autoAck, queueingConsumer);
 
             //获取消息
 
@@ -325,18 +350,19 @@ public class MQUtils {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            closeConnection(connection,channel);
+            closeConnection(connection, channel);
         }
     }
 
     /**
      * 关闭资源
+     *
      * @param connection
      * @param channel
      */
     private static void closeConnection(Connection connection, Channel channel) {
         try {
-            if(channel!=null) {
+            if (channel != null) {
                 channel.close();
             }
         } catch (IOException e) {
@@ -345,7 +371,7 @@ public class MQUtils {
             e.printStackTrace();
         }
         try {
-            if(connection!=null) {
+            if (connection != null) {
                 connection.close();
             }
         } catch (IOException e) {
@@ -372,19 +398,19 @@ public class MQUtils {
             channel = connection.createChannel();
 
             //声明一个交换机
-            channel.exchangeDeclare(exchangeName,exchangeType,durable,autoDelete,false,null);
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
 
             //声明队列
-            channel.queueDeclare(queueName,durable,exclusive,autoDelete,otherArguments);
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
 
             //声明一个绑定关系
-            channel.queueBind(queueName,exchangeName,routingKey);
+            channel.queueBind(queueName, exchangeName, routingKey);
 
             //创建消费者
             QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
 
             //设置channel
-            channel.basicConsume(queueName,autoAck,queueingConsumer);
+            channel.basicConsume(queueName, autoAck, queueingConsumer);
 
             //获取消息
 
@@ -419,7 +445,7 @@ public class MQUtils {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            closeConnection(connection,channel);
+            closeConnection(connection, channel);
         }
     }
 
@@ -442,19 +468,19 @@ public class MQUtils {
             channel = connection.createChannel();
 
             //声明一个交换机
-            channel.exchangeDeclare(exchangeName,exchangeType,durable,autoDelete,false,null);
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
 
             //声明队列
-            channel.queueDeclare(queueName,durable,exclusive,autoDelete,otherArguments);
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
 
             //声明一个绑定关系
-            channel.queueBind(queueName,exchangeName,routingKey);
+            channel.queueBind(queueName, exchangeName, routingKey);
 
             //创建消费者
             QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
 
             //设置channel
-            channel.basicConsume(queueName,autoAck,queueingConsumer);
+            channel.basicConsume(queueName, autoAck, queueingConsumer);
 
             //获取消息
 
@@ -486,7 +512,7 @@ public class MQUtils {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            closeConnection(connection,channel);
+            closeConnection(connection, channel);
         }
 
     }
@@ -559,19 +585,19 @@ public class MQUtils {
             channel = connection.createChannel();
 
             //声明一个交换机
-            channel.exchangeDeclare(exchangeName,exchangeType,durable,autoDelete,false,null);
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
 
             //声明队列
-            channel.queueDeclare(queueName,durable,exclusive,autoDelete,otherArguments);
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
 
             //声明一个绑定关系
-            channel.queueBind(queueName,exchangeName,routingKey);
+            channel.queueBind(queueName, exchangeName, routingKey);
 
             //创建消费者
             QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
 
             //设置channel
-            channel.basicConsume(queueName,autoAck,queueingConsumer);
+            channel.basicConsume(queueName, autoAck, queueingConsumer);
 
             //获取消息
 
@@ -598,4 +624,95 @@ public class MQUtils {
             e.printStackTrace();
         }
     }
+
+    public static void receiveWithMyConsumer(ConnectionFactory connectionFactory, String queueName, boolean durable,
+                                             boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                             boolean autoAck, String routingKey, String exchangeName, String exchangeType) {
+        Connection connection = null;
+        Channel channel = null;
+
+        try {
+
+            //通过连接工厂创建连接
+            //是否支持自动重连（用于网路发生闪断后的重连）
+            connectionFactory.setAutomaticRecoveryEnabled(true);
+            //每3s重连一次
+            connectionFactory.setNetworkRecoveryInterval(3000);
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            //声明一个交换机
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
+
+            //声明队列
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
+
+            //声明一个绑定关系
+            channel.queueBind(queueName, exchangeName, routingKey);
+
+            //创建消费者
+            QueueingConsumer queueingConsumer = new QueueingConsumer(channel);
+
+            //设置channel
+            channel.basicConsume(queueName, autoAck, new MyConsumer(channel));
+
+            while (true) {
+
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void receiveWithQOS(ConnectionFactory connectionFactory, String queueName, boolean durable,
+                                             boolean exclusive, boolean autoDelete, Map<String, Object> otherArguments,
+                                             boolean autoAck, String routingKey, String exchangeName, String exchangeType) {
+        Connection connection = null;
+        Channel channel = null;
+
+        try {
+
+            //通过连接工厂创建连接
+            //是否支持自动重连（用于网路发生闪断后的重连）
+            connectionFactory.setAutomaticRecoveryEnabled(true);
+            //每3s重连一次
+            connectionFactory.setNetworkRecoveryInterval(3000);
+            connection = connectionFactory.newConnection();
+
+            //通过connection创建一个channel
+            channel = connection.createChannel();
+
+            //声明一个交换机
+            channel.exchangeDeclare(exchangeName, exchangeType, durable, autoDelete, false, null);
+
+            //声明队列
+            channel.queueDeclare(queueName, durable, exclusive, autoDelete, otherArguments);
+
+            //声明一个绑定关系
+            channel.queueBind(queueName, exchangeName, routingKey);
+
+            channel.basicQos(0,1,false);
+
+            //设置channel
+            channel.basicConsume(queueName, autoAck, new MyConsumer(channel));
+
+            while (true) {
+
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

@@ -114,4 +114,39 @@ public class Consumer {
 
         MQUtils.receiveWithReturn(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
     }
+
+    public static void receiveWithMyConsumer() {
+        ConnectionFactory connectionFactory = MQUtils.getConnectionFactory("192.168.56.108", "/", 5672);
+
+        String queueName = "test_return_queue";
+        String exchangeName = "test_return_exchange";
+        String exchangeType = "topic";
+        String routingKey = "return.#";
+
+        boolean durable = true;
+        boolean exclusive = false;
+        boolean autoDelete = false;
+        Map<String,Object> otherArguments = null;
+        boolean autoAck = true;//是否自动应答（监听）
+
+        MQUtils.receiveWithMyConsumer(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
+    }
+
+    public static void receiveWithMyQOS() {
+        ConnectionFactory connectionFactory = MQUtils.getConnectionFactory("192.168.56.108", "/", 5672);
+
+        String queueName = "test_qos_queue";
+        String exchangeName = "test_qos_exchange";
+        String exchangeType = "topic";
+        String routingKey = "qos.#";
+
+        boolean durable = true;
+        boolean exclusive = false;
+        boolean autoDelete = false;
+        Map<String,Object> otherArguments = null;
+        /**消费限流不能自动应答，必须是手动应答*/
+        boolean autoAck = false;
+
+        MQUtils.receiveWithQOS(connectionFactory,queueName,durable,exclusive,autoDelete,otherArguments,autoAck,routingKey,exchangeName,exchangeType);
+    }
 }
